@@ -1,0 +1,461 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>RosArbitr</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0c12;
+            font-family: system-ui, sans-serif;
+            padding: 16px;
+            color: #eef2ff;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: #11131c;
+            border: 1px solid #2a2f3f;
+            border-radius: 24px;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            background: linear-gradient(135deg, #fff, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .user-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .username {
+            background: #1e1f2e;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 14px;
+        }
+
+        button {
+            background: #1e1f2e;
+            border: 1px solid #2a2f3f;
+            border-radius: 40px;
+            padding: 8px 14px;
+            color: #e2e8f0;
+            cursor: pointer;
+        }
+
+            button.primary {
+                background: #7c3aed;
+                border-color: #a855f7;
+                color: white;
+            }
+
+        /* Модалка одна */
+        .modal {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(8px);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+
+            .modal.hidden {
+                display: none;
+            }
+
+        .modal-content {
+            background: #11131c;
+            border: 1px solid #a855f7;
+            border-radius: 28px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+            .modal-content h2 {
+                text-align: center;
+                margin-bottom: 20px;
+            }
+
+        input {
+            background: #1e1f2e;
+            border: 1px solid #2a2f3f;
+            border-radius: 40px;
+            padding: 12px 18px;
+            width: 100%;
+            margin-bottom: 14px;
+            color: white;
+        }
+
+        .error-text {
+            color: #f87171;
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .browsers-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .browser-card {
+            background: #11131c;
+            border: 1px solid #2a2f3f;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .browser-header {
+            background: #1e1f2e;
+            padding: 10px 14px;
+            font-weight: 600;
+            border-bottom: 1px solid #2a2f3f;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .url-input {
+            flex: 1;
+            min-width: 150px;
+            background: #0f1119;
+            border: 1px solid #2a2f3f;
+            border-radius: 40px;
+            padding: 8px 14px;
+            color: white;
+        }
+
+        .go-btn {
+            background: #7c3aed;
+            border: none;
+            border-radius: 40px;
+            padding: 8px 16px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .browser-frame {
+            width: 100%;
+            height: 400px;
+            border: none;
+            background: #0f1119;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .streams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 16px;
+        }
+
+        .stream-card {
+            background: #11131c;
+            border: 1px solid #2a2f3f;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .stream-header {
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #1e1f2e;
+        }
+
+        .stream-name {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .status-badge {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 40px;
+            background: #1e1f2e;
+        }
+
+            .status-badge.online {
+                background: #1e3a2e;
+                color: #4ade80;
+                border: 1px solid #2e7d32;
+            }
+
+            .status-badge.offline {
+                background: #3b1e1e;
+                color: #f87171;
+                border: 1px solid #b91c1c;
+            }
+
+        .stream-stats {
+            padding: 10px 16px;
+            background: #0f1119;
+            font-size: 11px;
+            color: #9ca3af;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            border-bottom: 1px solid #1e1f2e;
+        }
+
+        .stream-actions {
+            padding: 14px 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+        }
+
+        @media (max-width: 640px) {
+            .browser-frame {
+                height: 300px;
+            }
+
+            .streams-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo"><h1>RosArbitr</h1></div>
+            <div class="user-area">
+                <span class="username" id="userNameDisplay">Гость</span>
+                <button id="logoutBtn">🚪 Выйти</button>
+            </div>
+        </div>
+
+        <!-- ОДНА МОДАЛКА НА ВСЁ -->
+        <div id="authModal" class="modal">
+            <div class="modal-content">
+                <h2>🔌 Подключение</h2>
+                <input type="text" id="serverInput" placeholder="АДРЕС">
+                <button id="connectBtn" class="primary" style="width:100%">Проверить</button>
+                <div id="serverError" class="error-text"></div>
+
+                <!-- ПОЛЯ ЛОГИНА И ПАРОЛЯ СКРЫТЫ ПОКА НЕ ПОДКЛЮЧИТСЯ -->
+                <div id="loginFields" style="margin-top: 16px;">
+                    <input type="text" id="loginInput" placeholder="Логин">
+                    <input type="password" id="passwordInput" placeholder="Пароль">
+                    <button id="loginAction" class="primary" style="width:100%">Войти</button>
+                    <div id="loginError" class="error-text"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ОСНОВНАЯ ПАНЕЛЬ -->
+        <div id="mainPanel" class="hidden">
+            <div class="browsers-section">
+                <div class="browser-card">
+                    <div class="browser-header">
+                        <span>🎥 KICK</span>
+                        <input type="text" id="kickUrl" class="url-input" value="https://kick.com/">
+                        <button class="go-btn" onclick="navigateKick()">Перейти</button>
+                    </div>
+                    <iframe id="kickFrame" class="browser-frame" src="https://kick.com/"></iframe>
+                </div>
+                <div class="browser-card">
+                    <div class="browser-header">
+                        <span>⚡ Накрутка</span>
+                        <input type="text" id="promoUrl" class="url-input" value="https://stream-promotion.ru/">
+                        <button class="go-btn" onclick="navigatePromo()">Перейти</button>
+                    </div>
+                    <iframe id="promoFrame" class="browser-frame" src="https://stream-promotion.ru/"></iframe>
+                </div>
+            </div>
+            <div class="section-header">
+                <h2>🎛️ Управление стримами</h2>
+                <div>
+                    <button id="refreshBtn">🔄 Обновить</button>
+                    <button id="addObsBtn" class="primary">➕ Добавить OBS</button>
+                </div>
+            </div>
+            <div id="streamsList" class="streams-grid"><div class="loading">Загрузка стримов...</div></div>
+        </div>
+    </div>
+
+    <div id="addObsModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>➕ Добавить OBS</h2>
+            <input type="text" id="obsName" placeholder="Название">
+            <input type="text" id="obsHost" placeholder="АДРЕС">
+            <input type="number" id="obsPort" placeholder="Порт">
+            <input type="password" id="obsPassword" placeholder="Пароль">
+            <button id="saveObsBtn" class="primary" style="width:100%">💾 Добавить</button>
+            <button id="cancelObsBtn" style="width:100%; margin-top:10px;">Отмена</button>
+        </div>
+    </div>
+
+    <script>
+        let API_URL = "", currentTelegramId = null, currentUsername = null, streamsData = [], autoRefreshInterval = null;
+        let serverConnected = false;
+
+        function navigateKick() { let u = document.getElementById('kickUrl').value.trim(); if (!u.startsWith('http')) u = 'https://' + u; document.getElementById('kickFrame').src = u; }
+        function navigatePromo() { let u = document.getElementById('promoUrl').value.trim(); if (!u.startsWith('http')) u = 'https://' + u; document.getElementById('promoFrame').src = u; }
+        function saveServerConfig(ip) { localStorage.setItem('rosarbitr_server_ip', ip); }
+        async function testServer(ip) { try { let r = await fetch(`http://${ip}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'test', password: 'test' }) }); return r.status === 401 || r.ok; } catch (e) { return false; } }
+
+        async function connectToServer() {
+            let ip = document.getElementById('serverInput').value.trim(), errDiv = document.getElementById('serverError');
+            if (!ip) { errDiv.innerText = 'Введите адрес сервера'; return; }
+            ip = ip.replace('http://', '').replace('https://', '');
+            errDiv.innerText = '⏳ Проверка...';
+            let alive = await testServer(ip);
+            if (alive) {
+                API_URL = `http://${ip}`;
+                saveServerConfig(ip);
+                errDiv.innerText = '✅ Сервер доступен';
+                serverConnected = true;
+                document.getElementById('serverInput').disabled = true;
+                document.getElementById('connectBtn').disabled = true;
+            } else {
+                errDiv.innerText = '❌ Сервер недоступен';
+                serverConnected = false;
+            }
+        }
+
+        async function login(username, password) {
+            try {
+                let r = await fetch(`${API_URL}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+                if (r.ok) {
+                    let d = await r.json();
+                    currentTelegramId = d.telegram_id;
+                    currentUsername = d.username;
+                    sessionStorage.setItem('telegram_id', currentTelegramId);
+                    sessionStorage.setItem('username', currentUsername);
+                    document.getElementById('userNameDisplay').innerText = currentUsername;
+                    return true;
+                }
+                return false;
+            } catch (e) { return false; }
+        }
+
+        async function handleLogin() {
+            if (!serverConnected) { document.getElementById('loginError').innerText = 'Сначала подключитесь к серверу'; return; }
+            let u = document.getElementById('loginInput').value.trim(), p = document.getElementById('passwordInput').value, errDiv = document.getElementById('loginError');
+            if (!u || !p) { errDiv.innerText = 'Введите логин и пароль'; return; }
+            errDiv.innerText = '⏳ Вход...';
+            let ok = await login(u, p);
+            if (ok) {
+                document.getElementById('authModal').classList.add('hidden');
+                document.getElementById('mainPanel').classList.remove('hidden');
+                loadStreams(); startAutoRefresh();
+                document.getElementById('loginInput').value = ''; document.getElementById('passwordInput').value = '';
+                errDiv.innerText = '';
+            } else { errDiv.innerText = '❌ Неверный логин или пароль'; }
+        }
+
+        function logout() {
+            sessionStorage.clear();
+            currentTelegramId = null; currentUsername = null; serverConnected = false;
+            document.getElementById('mainPanel').classList.add('hidden');
+            document.getElementById('authModal').classList.remove('hidden');
+            document.getElementById('userNameDisplay').innerText = 'Гость';
+            document.getElementById('serverInput').disabled = false;
+            document.getElementById('connectBtn').disabled = false;
+            document.getElementById('serverInput').value = '';
+            document.getElementById('loginInput').value = '';
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('serverError').innerText = '';
+            document.getElementById('loginError').innerText = '';
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+        }
+
+        function restoreSession() {
+            let saved = localStorage.getItem('rosarbitr_server_ip');
+            let id = sessionStorage.getItem('telegram_id');
+            let name = sessionStorage.getItem('username');
+            if (saved && id && name) {
+                API_URL = `http://${saved}`;
+                currentTelegramId = parseInt(id);
+                currentUsername = name;
+                serverConnected = true;
+                document.getElementById('userNameDisplay').innerText = currentUsername;
+                document.getElementById('authModal').classList.add('hidden');
+                document.getElementById('mainPanel').classList.remove('hidden');
+                loadStreams(); startAutoRefresh();
+                return true;
+            }
+            return false;
+        }
+
+        function startAutoRefresh() { if (autoRefreshInterval) clearInterval(autoRefreshInterval); autoRefreshInterval = setInterval(() => { if (currentTelegramId && API_URL) loadStreams(); }, 5000); }
+        async function loadStreams() { if (!currentTelegramId || !API_URL) return; try { let r = await fetch(`${API_URL}/streams?user_id=${currentTelegramId}`); if (r.status === 401 || r.status === 403) { logout(); return; } streamsData = await r.json(); renderStreams(); } catch (e) { document.getElementById('streamsList').innerHTML = '<div class="loading">❌ Ошибка загрузки</div>'; } }
+        async function sendCommand(cmd) { if (!currentTelegramId || !API_URL) return; await fetch(`${API_URL}/command`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command: cmd, user_id: currentTelegramId }) }); setTimeout(() => loadStreams(), 1000); }
+        async function addOBS(name, host, port, pass) { let cmd = `${name}, ${host}, ${port}, ${pass}`; await fetch(`${API_URL}/command`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command: cmd, user_id: currentTelegramId }) }); alert(`✅ OBS "${name}" добавлен`); loadStreams(); }
+        function formatUptime(s) { let h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return `${h}ч ${m}м`; }
+        function escapeHtml(s) { return s.replace(/[&<>]/g, m => { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
+        function renderStreams() {
+            let c = document.getElementById('streamsList');
+            if (!streamsData.length) { c.innerHTML = '<div class="loading">🎬 Нет стримов. Нажмите "Добавить OBS"</div>'; return; }
+            let html = '';
+            for (let s of streamsData) {
+                let sc = s.running ? 'online' : 'offline', st = s.running ? '🟢 ВКЛЮЧЕН' : '🔴 ВЫКЛЮЧЕН', ut = formatUptime(s.total_uptime_seconds || 0), sn = escapeHtml(s.name);
+                html += `<div class="stream-card"><div class="stream-header"><span class="stream-name">🎥 ${sn}</span><span class="status-badge ${sc}">${st}</span></div><div class="stream-stats"><span>💻 CPU ${s.cpu}%</span><span>🧠 RAM ${s.ram} MB</span><span>🎬 FPS ${s.fps}</span><span>📡 ${s.bitrate} kbps</span><span>⚠️ Потеря ${s.dropped}%</span><span>📈 Всего: ${ut}</span><span>🔁 Рестартов: ${s.restart_count}</span></div><div class="stream-actions"><button class="primary" onclick='sendCommand("on_${sn}")'>▶️ Запустить</button><button onclick='sendCommand("off_${sn}")'>⏹ Остановить</button><button onclick='sendCommand("restart_${sn}")'>🔄 Перезапустить</button><button class="warning" onclick='sendCommand("reset_stats_${sn}")'>📊 Сброс</button><button class="warning" onclick='sendCommand("delete_${sn}")'>🗑 Удалить</button></div></div>`;
+            }
+            c.innerHTML = html;
+        }
+
+        document.getElementById('connectBtn')?.addEventListener('click', connectToServer);
+        document.getElementById('loginAction')?.addEventListener('click', handleLogin);
+        document.getElementById('logoutBtn')?.addEventListener('click', () => { logout(); });
+        document.getElementById('refreshBtn')?.addEventListener('click', () => { loadStreams(); });
+        document.getElementById('addObsBtn')?.addEventListener('click', () => { document.getElementById('addObsModal').classList.remove('hidden'); });
+        document.getElementById('saveObsBtn')?.addEventListener('click', () => { let n = document.getElementById('obsName').value.trim(), h = document.getElementById('obsHost').value.trim(), p = document.getElementById('obsPort').value, pass = document.getElementById('obsPassword').value; if (!n || !h || !p) { alert('Заполните всё'); return; } addOBS(n, h, parseInt(p), pass); document.getElementById('addObsModal').classList.add('hidden'); document.getElementById('obsName').value = ''; document.getElementById('obsHost').value = ''; document.getElementById('obsPort').value = ''; document.getElementById('obsPassword').value = ''; });
+        document.getElementById('cancelObsBtn')?.addEventListener('click', () => { document.getElementById('addObsModal').classList.add('hidden'); });
+
+        if (!restoreSession()) {
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
