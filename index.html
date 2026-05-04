@@ -311,7 +311,8 @@
                         <input type="text" id="kickUrl" class="url-input" value="https://kick.com/">
                         <button class="go-btn" onclick="navigateKick()">Перейти</button>
                     </div>
-                    <iframe id="kickFrame" class="browser-frame" src="https://kick.com/"></iframe>
+                    <!-- Прокси-iframe для обхода блокировок -->
+                    <iframe id="kickFrame" class="browser-frame" src=""></iframe>
                 </div>
                 <div class="browser-card">
                     <div class="browser-header">
@@ -348,10 +349,28 @@
     <script>
         let API_URL = "", currentTelegramId = null, currentUsername = null, streamsData = [], autoRefreshInterval = null;
         let serverConnected = false;
-        let pendingRefresh = null;  // Фикс: таймаут после команд
+        let pendingRefresh = null;
 
-        function navigateKick() { let u = document.getElementById('kickUrl').value.trim(); if (!u.startsWith('http')) u = 'https://' + u; document.getElementById('kickFrame').src = u; }
-        function navigatePromo() { let u = document.getElementById('promoUrl').value.trim(); if (!u.startsWith('http')) u = 'https://' + u; document.getElementById('promoFrame').src = u; }
+        // Обновлённая функция навигации с прокси для Kick
+        function navigateKick() {
+            let url = document.getElementById('kickUrl').value.trim();
+            if (!url) return;
+            if (!url.startsWith('http')) url = 'https://' + url;
+            
+            // Убираем протокол для прокси
+            let path = url.replace(/^https?:\/\//, '');
+            
+            // Формируем URL через прокси-эндпоинт бота
+            let proxyUrl = `${API_URL}/proxy/${path}`;
+            document.getElementById('kickFrame').src = proxyUrl;
+        }
+
+        function navigatePromo() {
+            let url = document.getElementById('promoUrl').value.trim();
+            if (!url.startsWith('http')) url = 'https://' + url;
+            document.getElementById('promoFrame').src = url;
+        }
+        
         function saveServerConfig(ip) { localStorage.setItem('rosarbitr_server_ip', ip); }
         async function testServer(ip) { try { let r = await fetch(`http://${ip}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'test', password: 'test' }) }); return r.status === 401 || r.ok; } catch (e) { return false; } }
 
@@ -368,6 +387,13 @@
                 serverConnected = true;
                 document.getElementById('serverInput').disabled = true;
                 document.getElementById('connectBtn').disabled = true;
+                
+                // Автоматически загружаем Kick через прокси после подключения
+                let defaultKickUrl = document.getElementById('kickUrl').value.trim();
+                if (defaultKickUrl) {
+                    let path = defaultKickUrl.replace(/^https?:\/\//, '');
+                    document.getElementById('kickFrame').src = `${API_URL}/proxy/${path}`;
+                }
             } else {
                 errDiv.innerText = '❌ Сервер недоступен';
                 serverConnected = false;
@@ -435,6 +461,13 @@
                 document.getElementById('authModal').classList.add('hidden');
                 document.getElementById('mainPanel').classList.remove('hidden');
                 loadStreams(); startAutoRefresh();
+                
+                // Восстанавливаем прокси-iframe для Kick
+                let defaultKickUrl = document.getElementById('kickUrl').value.trim();
+                if (defaultKickUrl) {
+                    let path = defaultKickUrl.replace(/^https?:\/\//, '');
+                    document.getElementById('kickFrame').src = `${API_URL}/proxy/${path}`;
+                }
                 return true;
             }
             return false;
@@ -443,16 +476,13 @@
         function startAutoRefresh() { if (autoRefreshInterval) clearInterval(autoRefreshInterval); autoRefreshInterval = setInterval(() => { if (currentTelegramId && API_URL) loadStreams(); }, 5000); }
         async function loadStreams() { if (!currentTelegramId || !API_URL) return; try { let r = await fetch(`${API_URL}/streams?user_id=${currentTelegramId}`); if (r.status === 401 || r.status === 403) { logout(); return; } streamsData = await r.json(); renderStreams(); } catch (e) { document.getElementById('streamsList').innerHTML = '<div class="loading">❌ Ошибка загрузки</div>'; } }
 
-        // ИСПРАВЛЕННАЯ sendCommand с проверкой ответа и блокировкой кнопок
         async function sendCommand(cmd) {
             if (!currentTelegramId || !API_URL) return;
 
-            // Блокируем кнопки, чтобы не нажимали дважды
             let btns = document.querySelectorAll('.stream-actions button');
             btns.forEach(btn => btn.disabled = true);
 
             try {
-                // Подтверждение при удалении (доп. совет)
                 if (cmd.startsWith("delete_") && !confirm('Удалить стрим?')) {
                     btns.forEach(btn => btn.disabled = false);
                     return;
@@ -478,12 +508,10 @@
                     return;
                 }
 
-                // Фикс: отменяем старый таймаут
                 if (pendingRefresh) clearTimeout(pendingRefresh);
                 pendingRefresh = setTimeout(() => {
                     if (currentTelegramId && API_URL) loadStreams();
                     pendingRefresh = null;
-                    // Разблокируем кнопки через 2 секунды
                     setTimeout(() => {
                         btns.forEach(btn => btn.disabled = false);
                     }, 1000);
@@ -494,9 +522,7 @@
             }
         }
 
-        // ИСПРАВЛЕННАЯ addOBS с проверкой порта и ответа
         async function addOBS(name, host, port, pass) {
-            // Фикс: проверка порта
             if (!port || isNaN(parseInt(port))) {
                 alert('Порт должен быть числом');
                 return;
@@ -542,7 +568,6 @@
         document.getElementById('logoutBtn')?.addEventListener('click', () => { logout(); });
         document.getElementById('refreshBtn')?.addEventListener('click', () => { loadStreams(); });
 
-        // Фикс: очистка полей при открытии модалки OBS
         document.getElementById('addObsBtn')?.addEventListener('click', () => {
             document.getElementById('obsName').value = '';
             document.getElementById('obsHost').value = '';
