@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -70,7 +70,17 @@
                 color: white;
             }
 
-        /* Модалка одна */
+            button.warning {
+                background: #b91c1c20;
+                border-color: #b91c1c;
+                color: #f87171;
+            }
+
+            button:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
         .modal {
             display: flex;
             position: fixed;
@@ -338,6 +348,7 @@
     <script>
         let API_URL = "", currentTelegramId = null, currentUsername = null, streamsData = [], autoRefreshInterval = null;
         let serverConnected = false;
+        let pendingRefresh = null;  // Фикс: таймаут после команд
 
         function navigateKick() { let u = document.getElementById('kickUrl').value.trim(); if (!u.startsWith('http')) u = 'https://' + u; document.getElementById('kickFrame').src = u; }
         function navigatePromo() { let u = document.getElementById('promoUrl').value.trim(); if (!u.startsWith('http')) u = 'https://' + u; document.getElementById('promoFrame').src = u; }
@@ -408,6 +419,7 @@
             document.getElementById('serverError').innerText = '';
             document.getElementById('loginError').innerText = '';
             if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            if (pendingRefresh) clearTimeout(pendingRefresh);
         }
 
         function restoreSession() {
@@ -430,10 +442,90 @@
 
         function startAutoRefresh() { if (autoRefreshInterval) clearInterval(autoRefreshInterval); autoRefreshInterval = setInterval(() => { if (currentTelegramId && API_URL) loadStreams(); }, 5000); }
         async function loadStreams() { if (!currentTelegramId || !API_URL) return; try { let r = await fetch(`${API_URL}/streams?user_id=${currentTelegramId}`); if (r.status === 401 || r.status === 403) { logout(); return; } streamsData = await r.json(); renderStreams(); } catch (e) { document.getElementById('streamsList').innerHTML = '<div class="loading">❌ Ошибка загрузки</div>'; } }
-        async function sendCommand(cmd) { if (!currentTelegramId || !API_URL) return; await fetch(`${API_URL}/command`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command: cmd, user_id: currentTelegramId }) }); setTimeout(() => loadStreams(), 1000); }
-        async function addOBS(name, host, port, pass) { let cmd = `${name}, ${host}, ${port}, ${pass}`; await fetch(`${API_URL}/command`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command: cmd, user_id: currentTelegramId }) }); alert(`✅ OBS "${name}" добавлен`); loadStreams(); }
+
+        // ИСПРАВЛЕННАЯ sendCommand с проверкой ответа и блокировкой кнопок
+        async function sendCommand(cmd) {
+            if (!currentTelegramId || !API_URL) return;
+
+            // Блокируем кнопки, чтобы не нажимали дважды
+            let btns = document.querySelectorAll('.stream-actions button');
+            btns.forEach(btn => btn.disabled = true);
+
+            try {
+                // Подтверждение при удалении (доп. совет)
+                if (cmd.startsWith("delete_") && !confirm('Удалить стрим?')) {
+                    btns.forEach(btn => btn.disabled = false);
+                    return;
+                }
+
+                let r = await fetch(`${API_URL}/command`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: cmd, user_id: currentTelegramId })
+                });
+
+                if (r.status === 401 || r.status === 403) {
+                    alert('Сессия истекла, войдите снова');
+                    logout();
+                    btns.forEach(btn => btn.disabled = false);
+                    return;
+                }
+
+                if (!r.ok) {
+                    let error = await r.json();
+                    alert(`Ошибка: ${error.error || r.status}`);
+                    btns.forEach(btn => btn.disabled = false);
+                    return;
+                }
+
+                // Фикс: отменяем старый таймаут
+                if (pendingRefresh) clearTimeout(pendingRefresh);
+                pendingRefresh = setTimeout(() => {
+                    if (currentTelegramId && API_URL) loadStreams();
+                    pendingRefresh = null;
+                    // Разблокируем кнопки через 2 секунды
+                    setTimeout(() => {
+                        btns.forEach(btn => btn.disabled = false);
+                    }, 1000);
+                }, 1000);
+            } catch (e) {
+                alert('Нет связи с сервером');
+                btns.forEach(btn => btn.disabled = false);
+            }
+        }
+
+        // ИСПРАВЛЕННАЯ addOBS с проверкой порта и ответа
+        async function addOBS(name, host, port, pass) {
+            // Фикс: проверка порта
+            if (!port || isNaN(parseInt(port))) {
+                alert('Порт должен быть числом');
+                return;
+            }
+
+            let cmd = `${name}, ${host}, ${port}, ${pass}`;
+            try {
+                let r = await fetch(`${API_URL}/command`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: cmd, user_id: currentTelegramId })
+                });
+
+                if (!r.ok) {
+                    let error = await r.json();
+                    alert(`Ошибка: ${error.error || 'Не удалось добавить OBS'}`);
+                    return;
+                }
+
+                alert(`✅ OBS "${name}" добавлен`);
+                loadStreams();
+            } catch (e) {
+                alert('Ошибка связи с сервером');
+            }
+        }
+
         function formatUptime(s) { let h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return `${h}ч ${m}м`; }
         function escapeHtml(s) { return s.replace(/[&<>]/g, m => { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
+
         function renderStreams() {
             let c = document.getElementById('streamsList');
             if (!streamsData.length) { c.innerHTML = '<div class="loading">🎬 Нет стримов. Нажмите "Добавить OBS"</div>'; return; }
@@ -449,9 +541,29 @@
         document.getElementById('loginAction')?.addEventListener('click', handleLogin);
         document.getElementById('logoutBtn')?.addEventListener('click', () => { logout(); });
         document.getElementById('refreshBtn')?.addEventListener('click', () => { loadStreams(); });
-        document.getElementById('addObsBtn')?.addEventListener('click', () => { document.getElementById('addObsModal').classList.remove('hidden'); });
-        document.getElementById('saveObsBtn')?.addEventListener('click', () => { let n = document.getElementById('obsName').value.trim(), h = document.getElementById('obsHost').value.trim(), p = document.getElementById('obsPort').value, pass = document.getElementById('obsPassword').value; if (!n || !h || !p) { alert('Заполните всё'); return; } addOBS(n, h, parseInt(p), pass); document.getElementById('addObsModal').classList.add('hidden'); document.getElementById('obsName').value = ''; document.getElementById('obsHost').value = ''; document.getElementById('obsPort').value = ''; document.getElementById('obsPassword').value = ''; });
-        document.getElementById('cancelObsBtn')?.addEventListener('click', () => { document.getElementById('addObsModal').classList.add('hidden'); });
+
+        // Фикс: очистка полей при открытии модалки OBS
+        document.getElementById('addObsBtn')?.addEventListener('click', () => {
+            document.getElementById('obsName').value = '';
+            document.getElementById('obsHost').value = '';
+            document.getElementById('obsPort').value = '';
+            document.getElementById('obsPassword').value = '';
+            document.getElementById('addObsModal').classList.remove('hidden');
+        });
+
+        document.getElementById('saveObsBtn')?.addEventListener('click', () => {
+            let n = document.getElementById('obsName').value.trim(),
+                h = document.getElementById('obsHost').value.trim(),
+                p = document.getElementById('obsPort').value,
+                pass = document.getElementById('obsPassword').value;
+            if (!n || !h || !p) { alert('Заполните всё'); return; }
+            addOBS(n, h, parseInt(p), pass);
+            document.getElementById('addObsModal').classList.add('hidden');
+        });
+
+        document.getElementById('cancelObsBtn')?.addEventListener('click', () => {
+            document.getElementById('addObsModal').classList.add('hidden');
+        });
 
         if (!restoreSession()) {
             document.getElementById('authModal').classList.remove('hidden');
